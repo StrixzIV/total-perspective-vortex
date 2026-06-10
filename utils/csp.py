@@ -78,18 +78,12 @@ class CSP(BaseEstimator, TransformerMixin):
         # S_1 @ B = B @ D
         D, B = np.linalg.eigh(S_1)
 
-        # 6. Sort and select components
-        # np.linalg.eigh returns eigenvalues in ascending order (0 to 1).
-        # We need the first k (smallest eigenvalues of S_1 = largest of S_2)
-        # and the last k (largest eigenvalues of S_1 = smallest of S_2)
-        k = self.n_components // 2
-
-        # Largest S1 eigenvalues first (descending: D[-1], D[-2], ..., D[-k])
-        part_c1 = B[:, -1:-k-1:-1]
-        # Smallest S1 eigenvalues first (ascending: D[0], D[1], ..., D[k-1])
-        part_c2 = B[:, :k]
-
-        B_selected = np.concatenate([part_c1, part_c2], axis=1)
+        # 6. Sort and select components by absolute distance from 0.5
+        # The eigenvalues of S_1 range between 0 and 1.
+        # Values close to 0 or 1 contain the most discriminative information.
+        # Values close to 0.5 contain no discriminative information.
+        sort_idx = np.argsort(np.abs(D - 0.5))[::-1]
+        B_selected = B[:, sort_idx[:self.n_components]]
 
         # 7. Projection matrix W = B_selected.T @ P
         self.filters_ = B_selected.T @ P
