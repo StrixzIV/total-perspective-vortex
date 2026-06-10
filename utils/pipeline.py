@@ -27,14 +27,14 @@ def build_pipeline(n_components=4, wavelet_bonus=False):
     if wavelet_bonus:
         return Pipeline([
             ('scaler', ChannelScaler()),
-            ('csp', CSP(n_components=n_components)),
+            ('csp', CSP(n_components=n_components, transform_into='signals')),
             ('dwt', DWTFeatureExtractor(wavelet='db4', level=4)),
             ('clf', LinearDiscriminantAnalysis()),
         ])
 
     return Pipeline([
         ('scaler', ChannelScaler()),
-        ('csp', CSP(n_components=n_components)),
+        ('csp', CSP(n_components=n_components, transform_into='features')),
         ('clf', LinearDiscriminantAnalysis()),
     ])
 

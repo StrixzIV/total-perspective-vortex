@@ -34,8 +34,9 @@ class CSP(BaseEstimator, TransformerMixin):
     Subclasses BaseEstimator and TransformerMixin for seamless integration in scikit-learn pipelines.
     """
 
-    def __init__(self, n_components=4):
+    def __init__(self, n_components=4, transform_into='features'):
         self.n_components = n_components
+        self.transform_into = transform_into
         self.filters_ = None  # Projection matrix W
 
     def fit(self, X, y):
@@ -107,6 +108,9 @@ class CSP(BaseEstimator, TransformerMixin):
             
         # Z = W @ E -> shape: (n_epochs, n_components, n_times)
         Z = np.matmul(self.filters_, X)
+
+        if self.transform_into == 'signals':
+            return Z
 
         # Compute variance along the time dimension
         var = np.var(Z, axis=-1)
