@@ -210,6 +210,20 @@ For this BCI pipeline, the Daubechies 4 (`db4`) wavelet is specifically selected
 
 ## CLI Usage
 
+### 0. Pre-downloading / Verifying the Dataset (Recommended)
+Before running training or batch evaluation, you can pre-download the required PhysioNet EEG dataset files in parallel. This prevents network timeouts and issues during execution.
+
+```bash
+# Check download status of all files
+python download_data.py --check
+
+# Pre-download all missing files for all subjects (runs 3-14) using 4 threads
+python download_data.py
+
+# Download specific subjects (e.g., subjects 1 to 5) and runs with 8 threads
+python download_data.py --subjects 1-5 --runs 3,4,5,6 --workers 8
+```
+
 ### 1. Model Training
 Train a model on a specific subject and run. The model is saved to `models/subj{subject}_run{run}.pkl`.
 ```bash
