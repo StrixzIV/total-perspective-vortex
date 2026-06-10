@@ -27,6 +27,16 @@ def load_and_preprocess(subject, runs):
     montage = mne.channels.make_standard_montage('standard_1005')
     raw.set_montage(montage)
     
+    # Select 21 central motor cortex channels to improve SNR, reduce dimensionality,
+    # and make the artifact rejection threshold focus only on relevant regions.
+    motor_channels = [
+        'FC5', 'FC3', 'FC1', 'FCz', 'FC2', 'FC4', 'FC6',
+        'C5',  'C3',  'C1',  'Cz',  'C2',  'C4',  'C6',
+        'CP5', 'CP3', 'CP1', 'CPz', 'CP2', 'CP4', 'CP6'
+    ]
+    existing_picks = [ch for ch in motor_channels if ch in raw.ch_names]
+    raw.pick(existing_picks)
+    
     # 4. Bandpass filter to mu + beta bands (8-30 Hz)
     raw.filter(8., 30., fir_design='firwin', skip_by_annotation='edge', verbose='WARNING')
     
@@ -72,7 +82,7 @@ def load_and_preprocess(subject, runs):
                 preload=True, reject=None,
                 verbose='WARNING'
             )
-    
+            
     # 8. Extract raw epoch arrays and map labels to binary {T1: 1, T2: 2}
     X = epochs.get_data(copy=True)  # Shape: (n_epochs, n_channels, n_times)
     
@@ -85,12 +95,10 @@ def load_and_preprocess(subject, runs):
 
 
 class ChannelScaler(BaseEstimator, TransformerMixin):
-
     """
     Standardize EEG channels across epochs and time.
     Scales each channel independently using its mean and std calculated across axis=(0, 2).
     """
-
     def __init__(self):
         self.mean_ = None
         self.std_ = None
@@ -102,10 +110,8 @@ class ChannelScaler(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-
         if self.mean_ is None or self.std_ is None:
             raise RuntimeError("ChannelScaler is not fitted yet.")
-
         return (X - self.mean_) / self.std_
 
 

@@ -5,6 +5,8 @@ from sklearn.model_selection import cross_val_score, StratifiedKFold, train_test
 from utils.csp import CSP
 from utils.model import save_model, get_model_path
 from utils.preprocessing import load_and_preprocess, ChannelScaler, DWTFeatureExtractor
+from utils.lda import CustomLDA
+from utils.riemann import RiemannianMDM
 
 def get_run_pair(run):
     """
@@ -22,23 +24,30 @@ def get_run_pair(run):
             return pair
     raise ValueError(f"Run {run} is not a valid motor imagery/execution run (3-14).")
 
-def build_pipeline(n_components=4, wavelet_bonus=False):
-    
+def build_pipeline(n_components=4, wavelet_bonus=False, lda_bonus=False, riemannian_bonus=False):
+    if riemannian_bonus:
+        return Pipeline([
+            ('scaler', ChannelScaler()),
+            ('mdm', RiemannianMDM()),
+        ])
+
+    clf = CustomLDA() if lda_bonus else LinearDiscriminantAnalysis()
+
     if wavelet_bonus:
         return Pipeline([
             ('scaler', ChannelScaler()),
             ('csp', CSP(n_components=n_components, transform_into='signals')),
             ('dwt', DWTFeatureExtractor(wavelet='db4', level=4)),
-            ('clf', LinearDiscriminantAnalysis()),
+            ('clf', clf),
         ])
 
     return Pipeline([
         ('scaler', ChannelScaler()),
         ('csp', CSP(n_components=n_components, transform_into='features')),
-        ('clf', LinearDiscriminantAnalysis()),
+        ('clf', clf),
     ])
 
-def train_and_evaluate(subject, run, wavelet_bonus=False):
+def train_and_evaluate(subject, run, wavelet_bonus=False, lda_bonus=False, riemannian_bonus=False):
     """
     Load data, split into train/test, cross-validate on train, fit final,
     save the model, and report test accuracy.
@@ -56,7 +65,12 @@ def train_and_evaluate(subject, run, wavelet_bonus=False):
     )
     
     # Build pipeline
-    pipe = build_pipeline(n_components=4, wavelet_bonus=wavelet_bonus)
+    pipe = build_pipeline(
+        n_components=4,
+        wavelet_bonus=wavelet_bonus,
+        lda_bonus=lda_bonus,
+        riemannian_bonus=riemannian_bonus
+    )
     
     # 10-fold cross validation on training set
     cv = StratifiedKFold(n_splits=10, shuffle=True)

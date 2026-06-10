@@ -14,14 +14,15 @@ EXPERIMENTS = {
     5: [13, 14],  # motor execution: hands vs feet
 }
 
-def run_batch_evaluation(wavelet_bonus=False, subjects=None):
+def run_batch_evaluation(wavelet_bonus=False, lda_bonus=False, riemannian_bonus=False, subjects=None):
     """
     Run the batch evaluation across the specified subjects and 6 experiment types.
     """
     if subjects is None:
         subjects = list(range(1, 110))
         
-    print(f"Starting batch evaluation (wavelets={'enabled' if wavelet_bonus else 'disabled'})...")
+    print(f"Starting batch evaluation (wavelets={'enabled' if wavelet_bonus else 'disabled'}, lda={'custom' if lda_bonus else 'scikit-learn'}, riemannian={'enabled' if riemannian_bonus else 'disabled'})...")
+    print("Tip: Run `python download_data.py` first to pre-download all dataset files in parallel.")
     print(f"Evaluating subjects: {subjects}")
     
     # Store accuracies: {exp_id: [accuracies]}
@@ -45,7 +46,12 @@ def run_batch_evaluation(wavelet_bonus=False, subjects=None):
                 )
                 
                 # Build and train pipeline
-                pipe = build_pipeline(n_components=4, wavelet_bonus=wavelet_bonus)
+                pipe = build_pipeline(
+                    n_components=4,
+                    wavelet_bonus=wavelet_bonus,
+                    lda_bonus=lda_bonus,
+                    riemannian_bonus=riemannian_bonus
+                )
                 pipe.fit(X_train, y_train)
                 
                 # Score on test set
@@ -56,7 +62,7 @@ def run_batch_evaluation(wavelet_bonus=False, subjects=None):
             except Exception as e:
                 print(f"experiment {exp_id}: subject {subj:03d}: failed with error: {e}")
                 
-    print("\nMean accuracy of the six different experiments:")
+    print("\nMean accuracy of the six different experiments for all 109 subjects:")
     overall_means = []
     for exp_id in range(6):
         accs = exp_accuracies[exp_id]
@@ -94,27 +100,33 @@ def print_usage():
     print("  python mybci.py                          # Run batch evaluation on all 109 subjects")
     print("  python mybci.py --subjects 1-5           # Run batch evaluation on subjects 1 to 5")
     print("  python mybci.py --wavelet                # Run batch evaluation with Wavelet bonus")
+    print("  python mybci.py --lda                    # Run batch evaluation with Custom LDA classifier")
+    print("  python mybci.py --riemann                # Run batch evaluation with Riemannian MDM classifier")
     print("  python mybci.py <S> <R> train            # Train on subject S, run R")
-    print("  python mybci.py <S> <R> train --wavelet  # Train on subject S, run R with Wavelet bonus")
+    print("  python mybci.py <S> <R> train --wavelet  # Train with Wavelet bonus")
+    print("  python mybci.py <S> <R> train --lda      # Train with Custom LDA classifier")
+    print("  python mybci.py <S> <R> train --riemann  # Train with Riemannian MDM classifier")
     print("  python mybci.py <S> <R> predict          # Predict on subject S, run R in streaming mode")
 
 def main():
     args = sys.argv[1:]
     
-    # Check if we should use wavelet bonus
+    # Check options
     wavelet_bonus = "--wavelet" in args
+    lda_bonus = "--lda" in args
+    riemannian_bonus = "--riemann" in args
     
     # Parse subjects if present
     subjects = parse_subjects(args)
     
-    # Filter out --wavelet and --subjects and its argument from positional args
+    # Filter out options and --subjects from positional args
     clean_args = []
     skip = False
     for i, arg in enumerate(args):
         if skip:
             skip = False
             continue
-        if arg == "--wavelet":
+        if arg in ["--wavelet", "--lda", "--riemann"]:
             continue
         if arg == "--subjects":
             skip = True
@@ -122,7 +134,12 @@ def main():
         clean_args.append(arg)
         
     if len(clean_args) == 0:
-        run_batch_evaluation(wavelet_bonus=wavelet_bonus, subjects=subjects)
+        run_batch_evaluation(
+            wavelet_bonus=wavelet_bonus,
+            lda_bonus=lda_bonus,
+            riemannian_bonus=riemannian_bonus,
+            subjects=subjects
+        )
         return
         
     if len(clean_args) >= 3:
@@ -135,7 +152,12 @@ def main():
             sys.exit(1)
             
         if action == "train":
-            train_and_evaluate(subject, run, wavelet_bonus=wavelet_bonus)
+            train_and_evaluate(
+                subject, run,
+                wavelet_bonus=wavelet_bonus,
+                lda_bonus=lda_bonus,
+                riemannian_bonus=riemannian_bonus
+            )
         elif action == "predict":
             predict_stream(subject, run)
         else:
