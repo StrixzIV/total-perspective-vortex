@@ -1,10 +1,10 @@
-import os
 from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.model_selection import cross_val_score, StratifiedKFold, train_test_split
+
 from utils.csp import CSP
-from utils.preprocessing import load_and_preprocess
 from utils.model import save_model, get_model_path
+from utils.preprocessing import load_and_preprocess, ChannelScaler, DWTFeatureExtractor
 
 def get_run_pair(run):
     """
@@ -23,19 +23,20 @@ def get_run_pair(run):
     raise ValueError(f"Run {run} is not a valid motor imagery/execution run (3-14).")
 
 def build_pipeline(n_components=4, wavelet_bonus=False):
-    """Build the scikit-learn BCI pipeline."""
+    
     if wavelet_bonus:
-        from utils.preprocessing import DWTFeatureExtractor
         return Pipeline([
+            ('scaler', ChannelScaler()),
             ('csp', CSP(n_components=n_components)),
             ('dwt', DWTFeatureExtractor(wavelet='db4', level=4)),
             ('clf', LinearDiscriminantAnalysis()),
         ])
-    else:
-        return Pipeline([
-            ('csp', CSP(n_components=n_components)),
-            ('clf', LinearDiscriminantAnalysis()),
-        ])
+
+    return Pipeline([
+        ('scaler', ChannelScaler()),
+        ('csp', CSP(n_components=n_components)),
+        ('clf', LinearDiscriminantAnalysis()),
+    ])
 
 def train_and_evaluate(subject, run, wavelet_bonus=False):
     """

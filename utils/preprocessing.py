@@ -84,6 +84,31 @@ def load_and_preprocess(subject, runs):
     return X, y
 
 
+class ChannelScaler(BaseEstimator, TransformerMixin):
+
+    """
+    Standardize EEG channels across epochs and time.
+    Scales each channel independently using its mean and std calculated across axis=(0, 2).
+    """
+
+    def __init__(self):
+        self.mean_ = None
+        self.std_ = None
+
+    def fit(self, X, y=None):
+        self.mean_ = X.mean(axis=(0, 2), keepdims=True)
+        self.std_ = X.std(axis=(0, 2), keepdims=True)
+        self.std_ = np.maximum(self.std_, 1e-10)
+        return self
+
+    def transform(self, X):
+
+        if self.mean_ is None or self.std_ is None:
+            raise RuntimeError("ChannelScaler is not fitted yet.")
+
+        return (X - self.mean_) / self.std_
+
+
 class DWTFeatureExtractor(BaseEstimator, TransformerMixin):
     """
     Feature extractor that computes Discrete Wavelet Transform (DWT) features.
