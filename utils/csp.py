@@ -1,6 +1,32 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
+
+def _compute_covariance(X_class):
+
+    """
+    Compute normalized spatial covariance for a class.
+    
+    Parameters:
+    X_class (np.ndarray): Epochs for a specific class, shape (n_epochs, n_channels, n_times)
+    
+    Returns:
+    sigma (np.ndarray): Mean normalized covariance, shape (n_channels, n_channels)
+    """
+    
+    covs = []
+    
+    for epoch in X_class:
+    
+        cov = epoch @ epoch.T
+        trace = np.trace(cov)
+    
+        if trace > 0:
+            covs.append(cov / trace)
+    
+    return np.mean(covs, axis=0)
+
+
 class CSP(BaseEstimator, TransformerMixin):
 
     """
@@ -32,21 +58,8 @@ class CSP(BaseEstimator, TransformerMixin):
         c1, c2 = classes[0], classes[1]
 
         # 1. Compute normalized spatial covariance per class
-        covs_1 = []
-        for epoch in X[y == c1]:
-            cov = epoch @ epoch.T
-            trace = np.trace(cov)
-            if trace > 0:
-                covs_1.append(cov / trace)
-        sigma_1 = np.mean(covs_1, axis=0)
-
-        covs_2 = []
-        for epoch in X[y == c2]:
-            cov = epoch @ epoch.T
-            trace = np.trace(cov)
-            if trace > 0:
-                covs_2.append(cov / trace)
-        sigma_2 = np.mean(covs_2, axis=0)
+        sigma_1 = _compute_covariance(X[y == c1])
+        sigma_2 = _compute_covariance(X[y == c2])
 
         # 2. Composite covariance
         sigma_composite = sigma_1 + sigma_2
