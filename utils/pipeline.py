@@ -1,5 +1,6 @@
 from sklearn.pipeline import Pipeline
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score, StratifiedKFold, train_test_split
 
 from utils.csp import CSP
@@ -24,14 +25,18 @@ def get_run_pair(run):
             return pair
     raise ValueError(f"Run {run} is not a valid motor imagery/execution run (3-14).")
 
-def build_pipeline(n_components=4, wavelet_bonus=False, lda_bonus=False, riemannian_bonus=False):
+def build_pipeline(n_components=6, wavelet_bonus=False, lda_bonus=False, riemannian_bonus=False):
     if riemannian_bonus:
         return Pipeline([
             ('scaler', ChannelScaler()),
             ('mdm', RiemannianMDM()),
         ])
 
-    clf = CustomLDA() if lda_bonus else LinearDiscriminantAnalysis()
+    if lda_bonus:
+        clf = CustomLDA()
+    else:
+        # LogisticRegression is our new optimized default classifier
+        clf = LogisticRegression(C=1.0)
 
     if wavelet_bonus:
         return Pipeline([
@@ -64,9 +69,9 @@ def train_and_evaluate(subject, run, wavelet_bonus=False, lda_bonus=False, riema
         X, y, test_size=0.2, stratify=y, shuffle=True
     )
     
-    # Build pipeline
+    # Build pipeline with optimized 6 components
     pipe = build_pipeline(
-        n_components=4,
+        n_components=6,
         wavelet_bonus=wavelet_bonus,
         lda_bonus=lda_bonus,
         riemannian_bonus=riemannian_bonus

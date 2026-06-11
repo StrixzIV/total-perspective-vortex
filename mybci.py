@@ -47,7 +47,7 @@ def run_batch_evaluation(wavelet_bonus=False, lda_bonus=False, riemannian_bonus=
                 
                 # Build and train pipeline
                 pipe = build_pipeline(
-                    n_components=4,
+                    n_components=6,
                     wavelet_bonus=wavelet_bonus,
                     lda_bonus=lda_bonus,
                     riemannian_bonus=riemannian_bonus

@@ -3,13 +3,15 @@ import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 import pywt
 
-def load_and_preprocess(subject, runs):
+def load_and_preprocess(subject, runs, tmin=0.5, tmax=3.5):
     """
     Load EEG data from PhysioNet, concatenate, filter, epoch, and return data.
     
     Parameters:
     subject (int): Subject number (1-109)
     runs (list of int): List of run numbers to load
+    tmin (float): Epoch start time relative to event (default: 0.5s)
+    tmax (float): Epoch end time relative to event (default: 3.5s)
     
     Returns:
     X (np.ndarray): Epochs data of shape (n_epochs, n_channels, n_times)
@@ -60,7 +62,7 @@ def load_and_preprocess(subject, runs):
     # 7. Epoch data and drop bad epochs
     epochs = mne.Epochs(
         raw, events, event_id=mapping,
-        tmin=0.0, tmax=4.0, baseline=None,
+        tmin=tmin, tmax=tmax, baseline=None,
         preload=True, reject=dict(eeg=200e-6),
         verbose='ERROR'
     )
@@ -70,7 +72,7 @@ def load_and_preprocess(subject, runs):
         # Try a more relaxed threshold of 500uV
         epochs = mne.Epochs(
             raw, events, event_id=mapping,
-            tmin=0.0, tmax=4.0, baseline=None,
+            tmin=tmin, tmax=tmax, baseline=None,
             preload=True, reject=dict(eeg=500e-6),
             verbose='ERROR'
         )
@@ -78,7 +80,7 @@ def load_and_preprocess(subject, runs):
             # Fall back to no rejection if 500uV is still too strict
             epochs = mne.Epochs(
                 raw, events, event_id=mapping,
-                tmin=0.0, tmax=4.0, baseline=None,
+                tmin=tmin, tmax=tmax, baseline=None,
                 preload=True, reject=None,
                 verbose='ERROR'
             )
