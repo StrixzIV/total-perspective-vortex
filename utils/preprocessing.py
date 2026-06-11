@@ -16,10 +16,10 @@ def load_and_preprocess(subject, runs):
     y (np.ndarray): Labels mapped to 1 (T1) and 2 (T2)
     """
     # 1. Fetch .edf files
-    edf_files = mne.datasets.eegbci.load_data(subject, runs, verbose='WARNING')
+    edf_files = mne.datasets.eegbci.load_data(subject, runs, verbose='ERROR')
     
     # 2. Read and concatenate raws
-    raws = [mne.io.read_raw_edf(f, preload=True, verbose='WARNING') for f in edf_files]
+    raws = [mne.io.read_raw_edf(f, preload=True, verbose='ERROR') for f in edf_files]
     raw = mne.concatenate_raws(raws)
     
     # 3. Clean channel names and set standard montage
@@ -38,10 +38,10 @@ def load_and_preprocess(subject, runs):
     raw.pick(existing_picks)
     
     # 4. Bandpass filter to mu + beta bands (8-30 Hz)
-    raw.filter(8., 30., fir_design='firwin', skip_by_annotation='edge', verbose='WARNING')
+    raw.filter(8., 30., fir_design='firwin', skip_by_annotation='edge', verbose='ERROR')
     
     # 5. Extract events from annotations
-    events, event_id = mne.events_from_annotations(raw, verbose='WARNING')
+    events, event_id = mne.events_from_annotations(raw, verbose='ERROR')
     
     # 6. Map T1/T2 annotations to specific keys
     mapping = {}
@@ -62,7 +62,7 @@ def load_and_preprocess(subject, runs):
         raw, events, event_id=mapping,
         tmin=0.0, tmax=4.0, baseline=None,
         preload=True, reject=dict(eeg=200e-6),
-        verbose='WARNING'
+        verbose='ERROR'
     )
     
     # Fallback if too many epochs are rejected (need at least 15 for stable training/CV)
@@ -72,7 +72,7 @@ def load_and_preprocess(subject, runs):
             raw, events, event_id=mapping,
             tmin=0.0, tmax=4.0, baseline=None,
             preload=True, reject=dict(eeg=500e-6),
-            verbose='WARNING'
+            verbose='ERROR'
         )
         if len(epochs) < 15:
             # Fall back to no rejection if 500uV is still too strict
@@ -80,7 +80,7 @@ def load_and_preprocess(subject, runs):
                 raw, events, event_id=mapping,
                 tmin=0.0, tmax=4.0, baseline=None,
                 preload=True, reject=None,
-                verbose='WARNING'
+                verbose='ERROR'
             )
             
     # 8. Extract raw epoch arrays and map labels to binary {T1: 1, T2: 2}
