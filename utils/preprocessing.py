@@ -120,9 +120,10 @@ class DWTFeatureExtractor(BaseEstimator, TransformerMixin):
     Feature extractor that computes Discrete Wavelet Transform (DWT) features.
     Can be used after CSP projection in the pipeline.
     """
-    def __init__(self, wavelet='db4', level=4):
+    def __init__(self, wavelet='db4', level=4, select_bands=[2, 3]):
         self.wavelet = wavelet
         self.level = level
+        self.select_bands = select_bands
 
     def fit(self, X, y=None):
         return self
@@ -130,7 +131,7 @@ class DWTFeatureExtractor(BaseEstimator, TransformerMixin):
     def transform(self, X):
         """
         X: array-like of shape (n_epochs, n_channels, n_times)
-        Returns: array-like of shape (n_epochs, n_channels * (level + 1))
+        Returns: array-like of shape (n_epochs, n_channels * len(select_bands))
         """
         n_epochs, n_channels, n_times = X.shape
         features_list = []
@@ -141,8 +142,13 @@ class DWTFeatureExtractor(BaseEstimator, TransformerMixin):
                 channel_signal = X[i, j, :]
                 # Compute DWT decomposition
                 coeffs = pywt.wavedec(channel_signal, wavelet=self.wavelet, level=self.level)
-                # Extract energy per level
-                energy = [np.sum(c**2) for c in coeffs]
+                # Select only the specified sub-bands (e.g. D2 and D3)
+                if self.select_bands is not None:
+                    selected_coeffs = [coeffs[k] for k in self.select_bands]
+                else:
+                    selected_coeffs = coeffs
+                # Extract energy per selected level
+                energy = [np.sum(c**2) for c in selected_coeffs]
                 # Log transform the energy to stabilize variance (similar to log-variance in CSP)
                 log_energy = np.log(np.maximum(energy, 1e-10))
                 epoch_features.extend(log_energy)
